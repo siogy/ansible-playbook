@@ -1,4 +1,4 @@
-name: Install Nginx and PHP
+- name: Install Nginx and PHP
   hosts: all
   become: true
   tasks:
