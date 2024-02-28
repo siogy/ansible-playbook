@@ -1,0 +1,86 @@
+- name: Install Apache and PHP
+  hosts: all
+  become: true
+  tasks:
+    - name: Update package cache and install Apache
+      yum:
+        name: httpd
+        state: present
+
+    - name: Remove epel-release package if installed
+      yum:
+        name: epel-release
+        state: absent
+
+    - name: Install EPEL repository (for CentOS/RHEL)
+      yum:
+        name: epel-release
+        state: present
+
+    - name: Install Remi repository (for CentOS/RHEL)
+      yum:
+        name: https://rpms.remirepo.net/enterprise/remi-release-7.rpm
+        state: present
+      ignore_errors: yes
+
+    - name: Install PHP 7.3 and PHP-FPM with MySQL support
+      yum:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - php-fpm
+        - php-mysqlnd
+        - php-curl
+        - php-gd
+        - php-xml
+        - php-mbstring
+      notify: restart php-fpm
+
+    - name: Install firewalld
+      yum:
+        name: firewalld
+        state: present
+
+    - name: Start firewalld
+      service:
+        name: firewalld
+        state: started
+        enabled: yes
+
+    - name: Open ports 80, 8080, 8443, 443 in firewalld
+      firewalld:
+        port: "{{ item }}/tcp"
+        state: enabled
+        permanent: yes
+        zone: public
+      loop:
+        - 80
+        - 8080
+        - 8443
+        - 443
+
+    - name: Reload firewalld
+      command: firewall-cmd --reload
+
+    - name: Start Apache service
+      service:
+        name: httpd
+        state: started
+        enabled: yes
+
+    - name: Check if Apache is running and web is accessible
+      uri:
+        url: http://localhost
+        return_content: yes
+      register: apache_check
+      ignore_errors: yes
+
+    - name: Print Apache status
+      debug:
+        msg: "Apache is {{ 'up and running' if apache_check.status == 200 else 'not running' }}"
+
+  handlers:
+    - name: restart php-fpm
+      service:
+        name: php-fpm
+        state: restarted
