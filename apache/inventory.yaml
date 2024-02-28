@@ -1,0 +1,6 @@
+all:
+  hosts:
+    127.0.0.1:
+      ansible_connection: ssh
+      ansible_ssh_user: ssh login
+      ansible_ssh_pass: ssh password
